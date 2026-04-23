@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FlipYard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=Barlow:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --orange:#FF5C00;
+    --orange-dim:#CC4900;
+    --black:#0A0A0A;
+    --surface:#141414;
+    --surface2:#1E1E1E;
+    --border:#2A2A2A;
+    --text:#F0EDE8;
+    --muted:#888;
+    --green:#39D98A;
+    --red:#FF4444;
+  }
+  body{background:var(--black);color:var(--text);font-family:'Barlow',sans-serif;min-height:100vh}
+
+  /* TICKER */
+  .ticker{background:var(--orange);padding:6px 0;overflow:hidden;white-space:nowrap}
+  .ticker-inner{display:inline-block;animation:tick 20s linear infinite;font-family:'Bebas Neue',sans-serif;letter-spacing:3px;font-size:.9rem;color:#fff}
+  @keyframes tick{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+
+  /* NAV */
+  nav{display:flex;align-items:center;justify-content:space-between;padding:1rem 2rem;border-bottom:1px solid var(--border);position:sticky;top:0;background:rgba(10,10,10,0.95);z-index:100;backdrop-filter:blur(8px)}
+  .logo{font-family:'Bebas Neue',sans-serif;font-size:2rem;letter-spacing:2px;color:var(--orange);line-height:1}
+  .logo span{color:var(--text)}
+  .nav-tabs{display:flex;gap:4px}
+  .tab{padding:6px 16px;border:1px solid var(--border);background:transparent;color:var(--muted);font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;letter-spacing:1px;text-transform:uppercase;cursor:pointer;border-radius:4px;transition:all .15s}
+  .tab.active{background:var(--orange);color:#fff;border-color:var(--orange)}
+  .tab:hover:not(.active){color:var(--text);border-color:#555}
+
+  /* VIEWS */
+  .view{display:none;padding:2rem}
+  .view.active{display:block}
+
+  /* DASHBOARD */
+  .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px;margin-bottom:2rem}
+  .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.25rem}
+  .stat-label{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin-bottom:8px;font-family:'DM Mono',monospace}
+  .stat-val{font-family:'Bebas Neue',sans-serif;font-size:2.2rem;letter-spacing:1px;line-height:1}
+  .stat-val.green{color:var(--green)}
+  .stat-val.orange{color:var(--orange)}
+  .stat-val.red{color:var(--red)}
+  .section-title{font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:2px;color:var(--orange);margin-bottom:1rem;text-transform:uppercase}
+
+  /* TABLE */
+  .table-wrap{overflow-x:auto;border:1px solid var(--border);border-radius:8px}
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  thead{background:var(--surface)}
+  th{padding:12px 16px;text-align:left;font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);font-family:'DM Mono',monospace;border-bottom:1px solid var(--border);font-weight:400}
+  td{padding:12px 16px;border-bottom:1px solid var(--border);color:var(--text)}
+  tr:last-child td{border-bottom:none}
+  tr:hover td{background:rgba(255,255,255,0.03)}
+  .badge{display:inline-block;font-size:11px;font-weight:500;padding:3px 10px;border-radius:4px;font-family:'DM Mono',monospace;letter-spacing:.5px}
+  .badge.listed{background:rgba(57,217,138,0.15);color:var(--green)}
+  .badge.sold{background:rgba(255,92,0,0.15);color:var(--orange)}
+  .badge.held{background:rgba(136,136,136,0.15);color:var(--muted)}
+  .profit-pos{color:var(--green);font-family:'DM Mono',monospace}
+  .profit-neg{color:var(--red);font-family:'DM Mono',monospace}
+  .profit-neu{color:var(--muted);font-family:'DM Mono',monospace}
+
+  /* ADD FORM */
+  .add-section{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:1.5rem;margin-bottom:2rem}
+  .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin-bottom:12px}
+  .form-group{display:flex;flex-direction:column;gap:6px}
+  label{font-size:11px;text-transform:uppercase;letter-spacing:1px;color:var(--muted);font-family:'DM Mono',monospace}
+  input,select{background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 12px;border-radius:4px;font-family:'Barlow',sans-serif;font-size:14px;outline:none;-webkit-appearance:none}
+  input:focus,select:focus{border-color:var(--orange)}
+  select option{background:var(--surface2)}
+  .btn{padding:10px 20px;border-radius:4px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;cursor:pointer;transition:all .15s;border:none}
+  .btn-primary{background:var(--orange);color:#fff}
+  .btn-primary:hover{background:var(--orange-dim)}
+  .btn-sm{padding:5px 12px;font-size:11px}
+  .btn-danger{background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer}
+  .btn-danger:hover{border-color:var(--red);color:var(--red)}
+
+  /* STOREFRONT */
+  .store-header{text-align:center;padding:3rem 1rem;border-bottom:1px solid var(--border);margin-bottom:2rem}
+  .store-title{font-family:'Bebas Neue',sans-serif;font-size:4rem;letter-spacing:4px;margin-bottom:.5rem}
+  .store-title span{color:var(--orange)}
+  .store-sub{color:var(--muted);font-size:14px;letter-spacing:2px;text-transform:uppercase;font-family:'DM Mono',monospace}
+  .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
+  .listing-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s}
+  .listing-card:hover{border-color:var(--orange)}
+  .card-img{width:100%;height:180px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:3rem;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
+  .carousel{width:100%;height:100%;position:relative}
+  .carousel-slides{display:flex;height:100%;transition:transform .3s ease}
+  .carousel-slide{min-width:100%;height:100%;flex-shrink:0}
+  .carousel-slide img{width:100%;height:100%;object-fit:cover}
+  .carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:2;padding:0}
+  .carousel-btn.prev{left:6px}
+  .carousel-btn.next{right:6px}
+  .carousel-dots{position:absolute;bottom:6px;left:50%;transform:translateX(-50%);display:flex;gap:4px;z-index:2}
+  .carousel-dot{width:6px;height:6px;border-radius:50%;background:rgba(255,255,255,.4);cursor:pointer;border:none;padding:0}
+  .carousel-dot.active{background:#fff}
+  .add-photo-btn{position:absolute;bottom:6px;right:6px;background:rgba(255,92,0,.85);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;font-family:'Barlow',sans-serif;letter-spacing:.5px;padding:4px 10px;cursor:pointer;z-index:3;text-transform:uppercase}
+  .add-photo-btn:hover{background:var(--orange)}
+  .card-body{padding:1rem}
+  .card-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;margin-bottom:4px}
+  .card-meta{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace}
+  .card-price{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--orange);letter-spacing:1px}
+  .card-actions{display:flex;gap:8px;margin-top:12px}
+  .btn-contact{background:var(--orange);color:#fff;flex:1;text-align:center;padding:8px;border-radius:4px;font-size:13px;font-weight:600;letter-spacing:1px;cursor:pointer;border:none;font-family:'Barlow',sans-serif;text-transform:uppercase}
+  .btn-contact:hover{background:var(--orange-dim)}
+  .empty-state{text-align:center;padding:3rem;color:var(--muted);font-family:'DM Mono',monospace;font-size:13px}
+
+  /* MODAL */
+  .modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;align-items:center;justify-content:center}
+  .modal-bg.open{display:flex}
+  .modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;width:340px;text-align:center}
+  .modal h3{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;margin-bottom:.75rem;color:var(--orange)}
+  .modal p{font-size:14px;color:var(--muted);margin-bottom:1.5rem;line-height:1.7}
+  .modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 20px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:13px}
+  .modal-close:hover{border-color:#555;color:var(--text)}
+  #drop-zone.dz-over{border-color:var(--orange);background:rgba(255,92,0,0.05)}
+
+  /* ADMIN */
+  .admin-indicator{font-size:11px;font-family:'DM Mono',monospace;color:var(--orange);letter-spacing:1px;padding:4px 10px;border:1px solid var(--orange);border-radius:4px;cursor:pointer;opacity:.7}
+  .admin-indicator:hover{opacity:1}
+  .pw-modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:300;align-items:center;justify-content:center}
+  .pw-modal-bg.open{display:flex}
+  .pw-modal{background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2rem;width:320px;text-align:center}
+  .pw-modal h3{font-family:'Bebas Neue',sans-serif;font-size:1.8rem;color:var(--orange);margin-bottom:.5rem}
+  .pw-modal p{font-size:13px;color:var(--muted);margin-bottom:1.25rem;font-family:'DM Mono',monospace}
+  .pw-modal input{width:100%;margin-bottom:12px;text-align:center;letter-spacing:3px;font-size:16px}
+  .pw-error{color:var(--red);font-size:12px;font-family:'DM Mono',monospace;margin-bottom:10px;display:none}
+
+  @media(max-width:600px){
+    nav{flex-direction:column;gap:12px;padding:1rem}
+    .store-title{font-size:2.5rem}
+    .view{padding:1rem}
+  }
+</style>
+</head>
+<body>
+
+<div class="ticker">
+  <span class="ticker-inner">FLIP YARD &nbsp;&bull;&nbsp; MOTORS &bull; MOWERS &bull; CARS &bull; TRUCKS &bull; BIKES &bull; GENERATORS &bull; ATVs &bull; FLIP YARD &nbsp;&bull;&nbsp; MOTORS &bull; MOWERS &bull; CARS &bull; TRUCKS &bull; BIKES &bull; GENERATORS &bull; ATVs &bull; FLIP YARD &nbsp;&bull;&nbsp; MOTORS &bull; MOWERS &bull; CARS &bull; TRUCKS &bull; BIKES &bull; GENERATORS &bull; ATVs &bull;</span>
+</div>
+
+<nav>
+  <div class="logo" onclick="toggleAdminPrompt()" style="cursor:pointer" title="Admin login">FLIP<span>YARD</span></div>
+  <div class="nav-tabs">
+    <button class="tab active" onclick="showView('store', this)">STOREFRONT</button>
+    <button class="tab admin-only" onclick="showView('inventory', this)" style="display:none">INVENTORY</button>
+    <button class="tab admin-only" onclick="showView('dashboard', this)" style="display:none">DASHBOARD</button>
+    <span id="admin-badge" style="display:none" class="admin-indicator" onclick="logoutAdmin()">ADMIN ✕</span>
+  </div>
+</nav>
+
+<!-- STOREFRONT -->
+<div class="view active" id="view-store">
+  <div class="store-header">
+    <div class="store-title">FLIP<span>YARD</span></div>
+    <div class="store-sub">Engines &bull; Cars &bull; Powersports &bull; Everything In Between</div>
+  </div>
+  <div class="listings-grid" id="storefront-grid"></div>
+  <div id="store-empty" class="empty-state" style="display:none">No active listings yet — add items in Inventory.</div>
+</div>
+
+<!-- INVENTORY -->
+<div class="view" id="view-inventory">
+  <div class="section-title">Add Item</div>
+  <div class="add-section">
+    <div class="form-grid">
+      <div class="form-group">
+        <label>Item Name</label>
+        <input type="text" id="inp-name" placeholder="e.g. Honda GX390 Engine">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="inp-cat">
+          <option>Small Engine</option>
+          <option>Lawn Equipment</option>
+          <option>Car / Truck</option>
+          <option>Motorcycle</option>
+          <option>ATV / UTV</option>
+          <option>Generator</option>
+          <option>Tools</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Bought For ($)</label>
+        <input type="number" id="inp-cost" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Asking Price ($)</label>
+        <input type="number" id="inp-price" placeholder="0.00" min="0" step="0.01">
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="inp-status">
+          <option value="listed">Listed</option>
+          <option value="held">Holding</option>
+          <option value="sold">Sold</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Emoji Icon</label>
+        <select id="inp-icon">
+          <option value="🔧">🔧 Engine</option>
+          <option value="🚗">🚗 Car</option>
+          <option value="🚛">🚛 Truck</option>
+          <option value="🏍">🏍 Moto</option>
+          <option value="🚜">🚜 ATV</option>
+          <option value="⚡">⚡ Generator</option>
+          <option value="🌿">🌿 Lawn</option>
+          <option value="🔩">🔩 Parts</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Notes (optional)</label>
+      <input type="text" id="inp-notes" placeholder="Condition, mods, source...">
+    </div>
+    <button class="btn btn-primary" onclick="addItem()">+ ADD TO INVENTORY</button>
+    <p style="font-size:12px;color:var(--muted);font-family:'DM Mono',monospace;margin-top:10px">Add photos after adding the item — use the 📷 button on each card.</p>
+  </div>
+
+  <div class="section-title">All Items</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th>
+          <th>Category</th>
+          <th>Cost</th>
+          <th>Price</th>
+          <th>Profit</th>
+          <th>Status</th>
+          <th>Notes</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="inv-tbody"></tbody>
+    </table>
+    <div id="inv-empty" class="empty-state">No items yet — add your first flip above.</div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div class="view" id="view-dashboard">
+  <div class="section-title">Overview</div>
+  <div class="stats-grid">
+    <div class="stat-card"><div class="stat-label">Total Items</div><div class="stat-val orange" id="d-total">0</div></div>
+    <div class="stat-card"><div class="stat-label">Listed</div><div class="stat-val" id="d-listed">0</div></div>
+    <div class="stat-card"><div class="stat-label">Sold</div><div class="stat-val green" id="d-sold">0</div></div>
+    <div class="stat-card"><div class="stat-label">Invested</div><div class="stat-val" id="d-invested">$0</div></div>
+    <div class="stat-card"><div class="stat-label">Revenue</div><div class="stat-val green" id="d-revenue">$0</div></div>
+    <div class="stat-card"><div class="stat-label">Net Profit</div><div class="stat-val green" id="d-profit">$0</div></div>
+  </div>
+
+  <div class="section-title" style="margin-top:1.5rem">Recent Activity</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Item</th><th>Cost</th><th>Price</th><th>Profit</th><th>Status</th>
+        </tr>
+      </thead>
+      <tbody id="dash-tbody"></tbody>
+    </table>
+    <div id="dash-empty" class="empty-state">Add some flips to see your dashboard.</div>
+  </div>
+</div>
+
+<!-- CONTACT MODAL -->
+<div class="modal-bg" id="contact-modal">
+  <div class="modal">
+    <h3>Interested?</h3>
+    <p id="modal-msg">Hit up the seller to grab this deal before it's gone.</p>
+    <a href="https://www.facebook.com/profile.php?id=61567118738003" target="_blank" rel="noopener" style="display:block;background:#1877F2;color:#fff;padding:10px 20px;border-radius:4px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:600;letter-spacing:1px;text-transform:uppercase;text-decoration:none;margin-bottom:10px;">VIEW ON FACEBOOK MARKETPLACE</a>
+    <button class="modal-close" onclick="document.getElementById('contact-modal').classList.remove('open')">Close</button>
+  </div>
+</div>
+
+<!-- PASSWORD MODAL -->
+<div class="pw-modal-bg" id="pw-modal">
+  <div class="pw-modal">
+    <h3>ADMIN ACCESS</h3>
+    <p>Enter password to unlock editor</p>
+    <input type="password" id="pw-input" placeholder="••••••" onkeydown="if(event.key==='Enter')checkPassword()">
+    <div class="pw-error" id="pw-error">Wrong password. Try again.</div>
+    <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="checkPassword()">UNLOCK</button>
+    <button class="modal-close" style="width:100%" onclick="document.getElementById('pw-modal').classList.remove('open')">Cancel</button>
+  </div>
+</div>
+
+<script>
+  // --- DATA ---
+  let items = [];
+  let isAdmin = false;
+  try { items = JSON.parse(localStorage.getItem('flipyard-items') || '[]'); } catch(e) {}
+
+  function save() {
+    try { localStorage.setItem('flipyard-items', JSON.stringify(items)); } catch(e) {}
+  }
+
+  // --- ADMIN ---
+  function toggleAdminPrompt() {
+    if (isAdmin) { logoutAdmin(); return; }
+    document.getElementById('pw-input').value = '';
+    document.getElementById('pw-error').style.display = 'none';
+    document.getElementById('pw-modal').classList.add('open');
+    setTimeout(() => document.getElementById('pw-input').focus(), 100);
+  }
+
+  function checkPassword() {
+    const val = document.getElementById('pw-input').value;
+    if (val === 'Tulio') {
+      isAdmin = true;
+      document.getElementById('pw-modal').classList.remove('open');
+      document.querySelectorAll('.admin-only').forEach(el => el.style.display = '');
+      document.getElementById('admin-badge').style.display = 'inline-block';
+    } else {
+      document.getElementById('pw-error').style.display = 'block';
+      document.getElementById('pw-input').value = '';
+      document.getElementById('pw-input').focus();
+    }
+  }
+
+  function logoutAdmin() {
+    if (!confirm('Log out of admin mode?')) return;
+    isAdmin = false;
+    document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
+    document.getElementById('admin-badge').style.display = 'none';
+    // Switch back to storefront
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-store').classList.add('active');
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.querySelector('.tab').classList.add('active');
+  }
+
+  // --- NAVIGATION ---
+  function showView(v, btn) {
+    document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+    document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+    document.getElementById('view-' + v).classList.add('active');
+    if (btn) btn.classList.add('active');
+    render();
+  }
+
+  // --- ADD ITEM ---
+  function addItem() {
+    const name = document.getElementById('inp-name').value.trim();
+    const cost = parseFloat(document.getElementById('inp-cost').value) || 0;
+    const price = parseFloat(document.getElementById('inp-price').value) || 0;
+    if (!name) { alert('Give the item a name!'); return; }
+    items.push({
+      id: Date.now(),
+      name,
+      cat: document.getElementById('inp-cat').value,
+      cost, price,
+      status: document.getElementById('inp-status').value,
+      icon: document.getElementById('inp-icon').value,
+      notes: document.getElementById('inp-notes').value.trim(),
+      photos: []
+    });
+    save();
+    document.getElementById('inp-name').value = '';
+    document.getElementById('inp-cost').value = '';
+    document.getElementById('inp-price').value = '';
+    document.getElementById('inp-notes').value = '';
+    render();
+  }
+
+  function addPhotosToItem(id) {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'image/*';
+    input.multiple = true;
+    input.onchange = function() {
+      const files = Array.from(input.files);
+      let loaded = 0;
+      files.forEach(file => {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+          const item = items.find(i => i.id === id);
+          if (item) {
+            if (!item.photos) item.photos = [];
+            item.photos.push(e.target.result);
+            loaded++;
+            if (loaded === files.length) { save(); render(); }
+          }
+        };
+        reader.readAsDataURL(file);
+      });
+    };
+    input.click();
+  }
+
+  function buildCarousel(it) {
+    const photos = it.photos && it.photos.length ? it.photos : null;
+    if (!photos) {
+      return `<div class="card-img" style="font-size:3rem">${it.icon}<button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add Photo</button></div>`;
+    }
+    const slides = photos.map((p,i) => `<div class="carousel-slide"><img src="${p}" alt="photo ${i+1}"></div>`).join('');
+    const dots = photos.length > 1 ? `<div class="carousel-dots">${photos.map((_,i) => `<button class="carousel-dot${i===0?' active':''}" onclick="goSlide(${it.id},${i})"></button>`).join('')}</div>` : '';
+    const arrows = photos.length > 1 ? `<button class="carousel-btn prev" onclick="prevSlide(${it.id})">&#8249;</button><button class="carousel-btn next" onclick="nextSlide(${it.id})">&#8250;</button>` : '';
+    return `<div class="card-img"><div class="carousel" id="car-${it.id}"><div class="carousel-slides" id="slides-${it.id}">${slides}</div>${arrows}${dots}</div><button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add</button></div>`;
+  }
+
+  const slideIndex = {};
+  function goSlide(id, idx) {
+    slideIndex[id] = idx;
+    const slides = document.getElementById('slides-' + id);
+    if (slides) slides.style.transform = `translateX(-${idx * 100}%)`;
+    const dots = document.querySelectorAll(`#car-${id} .carousel-dot`);
+    dots.forEach((d,i) => d.classList.toggle('active', i === idx));
+  }
+  function nextSlide(id) {
+    const item = items.find(i => i.id === id);
+    if (!item || !item.photos) return;
+    const idx = ((slideIndex[id] || 0) + 1) % item.photos.length;
+    goSlide(id, idx);
+  }
+  function prevSlide(id) {
+    const item = items.find(i => i.id === id);
+    if (!item || !item.photos) return;
+    const idx = ((slideIndex[id] || 0) - 1 + item.photos.length) % item.photos.length;
+    goSlide(id, idx);
+  }
+
+  function removeItem(id) {
+    if (!confirm('Remove this item?')) return;
+    items = items.filter(i => i.id !== id);
+    save(); render();
+  }
+
+  // --- RENDER ---
+  function render() {
+    renderInventory();
+    renderStore();
+    renderDash();
+  }
+
+  function renderInventory() {
+    const tbody = document.getElementById('inv-tbody');
+    const empty = document.getElementById('inv-empty');
+    tbody.innerHTML = '';
+    if (!items.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    items.forEach(it => {
+      const profit = it.price - it.cost;
+      const pc = profit > 0 ? 'profit-pos' : profit < 0 ? 'profit-neg' : 'profit-neu';
+      const sign = profit > 0 ? '+' : '';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td><strong>${it.icon} ${it.name}</strong></td>
+        <td><span style="color:var(--muted);font-size:12px">${it.cat}</span></td>
+        <td style="font-family:'DM Mono',monospace">$${it.cost.toFixed(2)}</td>
+        <td style="font-family:'DM Mono',monospace">$${it.price.toFixed(2)}</td>
+        <td class="${pc}">$${sign}${profit.toFixed(2)}</td>
+        <td><span class="badge ${it.status}">${it.status.toUpperCase()}</span></td>
+        <td style="color:var(--muted);font-size:12px">${it.notes || '—'}</td>
+        <td><button class="btn btn-sm btn-danger" onclick="removeItem(${it.id})">✕</button></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function renderStore() {
+    const grid = document.getElementById('storefront-grid');
+    const empty = document.getElementById('store-empty');
+    const listed = items.filter(i => i.status === 'listed');
+    grid.innerHTML = '';
+    if (!listed.length) { empty.style.display = 'block'; return; }
+    empty.style.display = 'none';
+    listed.forEach(it => {
+      const card = document.createElement('div');
+      card.className = 'listing-card';
+      card.innerHTML = `
+        ${buildCarousel(it)}
+        <div class="card-body">
+          <div class="card-name">${it.name}</div>
+          <div class="card-meta">${it.cat}${it.notes ? ' &bull; ' + it.notes : ''}</div>
+          <div class="card-price">$${it.price.toFixed(0)}</div>
+          <div class="card-actions">
+            <button class="btn-contact" onclick="openContact('${it.name.replace(/'/g, "\\'")}')">CONTACT SELLER</button>
+          </div>
+        </div>
+      `;
+      grid.appendChild(card);
+    });
+  }
+
+  function renderDash() {
+    const tbody = document.getElementById('dash-tbody');
+    const empty = document.getElementById('dash-empty');
+    if (!items.length) { empty.style.display = 'block'; tbody.innerHTML = ''; return; }
+    empty.style.display = 'none';
+
+    let invested = 0, revenue = 0, soldCost = 0, sold = 0, listed = 0;
+    items.forEach(it => {
+      invested += it.cost;
+      if (it.status === 'sold') { revenue += it.price; soldCost += it.cost; sold++; }
+      if (it.status === 'listed') listed++;
+    });
+    const profit = revenue - soldCost;
+
+    document.getElementById('d-total').textContent = items.length;
+    document.getElementById('d-listed').textContent = listed;
+    document.getElementById('d-sold').textContent = sold;
+    document.getElementById('d-invested').textContent = '$' + invested.toFixed(0);
+    document.getElementById('d-revenue').textContent = '$' + revenue.toFixed(0);
+    document.getElementById('d-profit').textContent = (profit >= 0 ? '+$' : '-$') + Math.abs(profit).toFixed(0);
+    document.getElementById('d-profit').className = 'stat-val ' + (profit >= 0 ? 'green' : 'red');
+
+    tbody.innerHTML = '';
+    [...items].reverse().slice(0, 10).forEach(it => {
+      const p = it.price - it.cost;
+      const pc = p > 0 ? 'profit-pos' : p < 0 ? 'profit-neg' : 'profit-neu';
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>${it.icon} ${it.name}</td>
+        <td style="font-family:'DM Mono',monospace">$${it.cost.toFixed(2)}</td>
+        <td style="font-family:'DM Mono',monospace">$${it.price.toFixed(2)}</td>
+        <td class="${pc}">$${(p >= 0 ? '+' : '')}${p.toFixed(2)}</td>
+        <td><span class="badge ${it.status}">${it.status.toUpperCase()}</span></td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  function openContact(name) {
+    document.getElementById('modal-msg').textContent = 'Interested in "' + name + '"? Reach out to the seller to lock it in.';
+    document.getElementById('contact-modal').classList.add('open');
+  }
+
+  render();
+</script>
+</body>
+</html>
