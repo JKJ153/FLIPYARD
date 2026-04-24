@@ -399,13 +399,14 @@
 
   function buildCarousel(it) {
     const photos = it.photos && it.photos.length ? it.photos : null;
+    const addBtn = isAdmin ? `<button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add</button>` : '';
     if (!photos) {
-      return `<div class="card-img" style="font-size:3rem">${it.icon}<button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add Photo</button></div>`;
+      return `<div class="card-img" style="font-size:3rem">${it.icon}${addBtn}</div>`;
     }
     const slides = photos.map((p,i) => `<div class="carousel-slide"><img src="${p}" alt="photo ${i+1}"></div>`).join('');
     const dots = photos.length > 1 ? `<div class="carousel-dots">${photos.map((_,i) => `<button class="carousel-dot${i===0?' active':''}" onclick="goSlide(${it.id},${i})"></button>`).join('')}</div>` : '';
     const arrows = photos.length > 1 ? `<button class="carousel-btn prev" onclick="prevSlide(${it.id})">&#8249;</button><button class="carousel-btn next" onclick="nextSlide(${it.id})">&#8250;</button>` : '';
-    return `<div class="card-img"><div class="carousel" id="car-${it.id}"><div class="carousel-slides" id="slides-${it.id}">${slides}</div>${arrows}${dots}</div><button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add</button></div>`;
+    return `<div class="card-img"><div class="carousel" id="car-${it.id}"><div class="carousel-slides" id="slides-${it.id}">${slides}</div>${arrows}${dots}</div>${addBtn}</div>`;
   }
 
   const slideIndex = {};
