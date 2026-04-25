@@ -295,13 +295,59 @@
 </div>
 
 <script>
+  // --- SUPABASE CONFIG ---
+  const SUPA_URL = 'https://jzqfaifbuutvwwyhctrm.supabase.co';
+  const SUPA_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imp6cWZhaWZidXV0dnd3eWhjdHJtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzcxMDE2OTIsImV4cCI6MjA5MjY3NzY5Mn0.BPWCcHPIWBIcC69i8ePljR3-D1GjznO7bN6tz6PIdVs';
+
+  const headers = {
+    'Content-Type': 'application/json',
+    'apikey': SUPA_KEY,
+    'Authorization': 'Bearer ' + SUPA_KEY
+  };
+
   // --- DATA ---
   let items = [];
   let isAdmin = false;
-  try { items = JSON.parse(localStorage.getItem('flipyard-items') || '[]'); } catch(e) {}
 
-  function save() {
-    try { localStorage.setItem('flipyard-items', JSON.stringify(items)); } catch(e) {}
+  async function loadItems() {
+    try {
+      const res = await fetch(SUPA_URL + '/rest/v1/items?select=*&order=id.asc', { headers });
+      const data = await res.json();
+      items = data.map(row => ({
+        ...row,
+        photos: row.photos ? JSON.parse(row.photos) : []
+      }));
+      render();
+    } catch(e) { console.error('Load error', e); }
+  }
+
+  async function save(item) {
+    const payload = { ...item, photos: JSON.stringify(item.photos || []) };
+    delete payload.id;
+    if (item.id && !String(item.id).startsWith('new')) {
+      // update
+      await fetch(SUPA_URL + '/rest/v1/items?id=eq.' + item.id, {
+        method: 'PATCH',
+        headers: { ...headers, 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload)
+      });
+    } else {
+      // insert
+      const res = await fetch(SUPA_URL + '/rest/v1/items', {
+        method: 'POST',
+        headers: { ...headers, 'Prefer': 'return=representation' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data && data[0]) item.id = data[0].id;
+    }
+  }
+
+  async function deleteItem(id) {
+    await fetch(SUPA_URL + '/rest/v1/items?id=eq.' + id, {
+      method: 'DELETE',
+      headers
+    });
   }
 
   // --- ADMIN ---
@@ -349,13 +395,12 @@
   }
 
   // --- ADD ITEM ---
-  function addItem() {
+  async function addItem() {
     const name = document.getElementById('inp-name').value.trim();
     const cost = parseFloat(document.getElementById('inp-cost').value) || 0;
     const price = parseFloat(document.getElementById('inp-price').value) || 0;
     if (!name) { alert('Give the item a name!'); return; }
-    items.push({
-      id: Date.now(),
+    const item = {
       name,
       cat: document.getElementById('inp-cat').value,
       cost, price,
@@ -363,13 +408,14 @@
       icon: document.getElementById('inp-icon').value,
       notes: document.getElementById('inp-notes').value.trim(),
       photos: []
-    });
-    save();
+    };
+    items.push(item);
+    render();
+    await save(item);
     document.getElementById('inp-name').value = '';
     document.getElementById('inp-cost').value = '';
     document.getElementById('inp-price').value = '';
     document.getElementById('inp-notes').value = '';
-    render();
   }
 
   function addPhotosToItem(id) {
@@ -382,13 +428,13 @@
       let loaded = 0;
       files.forEach(file => {
         const reader = new FileReader();
-        reader.onload = function(e) {
+        reader.onload = async function(e) {
           const item = items.find(i => i.id === id);
           if (item) {
             if (!item.photos) item.photos = [];
             item.photos.push(e.target.result);
             loaded++;
-            if (loaded === files.length) { save(); render(); }
+            if (loaded === files.length) { render(); await save(item); }
           }
         };
         reader.readAsDataURL(file);
@@ -430,10 +476,11 @@
     goSlide(id, idx);
   }
 
-  function removeItem(id) {
+  async function removeItem(id) {
     if (!confirm('Remove this item?')) return;
     items = items.filter(i => i.id !== id);
-    save(); render();
+    render();
+    await deleteItem(id);
   }
 
   // --- RENDER ---
@@ -536,7 +583,7 @@
     document.getElementById('contact-modal').classList.add('open');
   }
 
-  render();
+  loadItems();
 </script>
 </body>
 </html>
