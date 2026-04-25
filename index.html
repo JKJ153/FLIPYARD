@@ -89,11 +89,13 @@
   .listings-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:16px}
   .listing-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .2s}
   .listing-card:hover{border-color:var(--orange)}
+
+  /* CAROUSEL — key fix: overflow:hidden on .carousel */
   .card-img{width:100%;height:180px;background:var(--surface2);display:flex;align-items:center;justify-content:center;font-size:3rem;border-bottom:1px solid var(--border);position:relative;overflow:hidden}
-  .carousel{width:100%;height:100%;position:relative}
-  .carousel-slides{display:flex;height:100%;transition:transform .3s ease}
-  .carousel-slide{min-width:100%;height:100%;flex-shrink:0}
-  .carousel-slide img{width:100%;height:100%;object-fit:cover}
+  .carousel{width:100%;height:100%;position:relative;overflow:hidden}
+  .carousel-slides{display:flex;height:100%;transition:transform .3s ease;will-change:transform}
+  .carousel-slide{min-width:100%;width:100%;height:100%;flex-shrink:0;flex-grow:0}
+  .carousel-slide img{width:100%;height:100%;object-fit:cover;display:block}
   .carousel-btn{position:absolute;top:50%;transform:translateY(-50%);background:rgba(0,0,0,.6);border:none;color:#fff;width:28px;height:28px;border-radius:50%;cursor:pointer;font-size:14px;display:flex;align-items:center;justify-content:center;z-index:2;padding:0}
   .carousel-btn.prev{left:6px}
   .carousel-btn.next{right:6px}
@@ -102,6 +104,7 @@
   .carousel-dot.active{background:#fff}
   .add-photo-btn{position:absolute;bottom:6px;right:6px;background:rgba(255,92,0,.85);color:#fff;border:none;border-radius:4px;font-size:11px;font-weight:600;font-family:'Barlow',sans-serif;letter-spacing:.5px;padding:4px 10px;cursor:pointer;z-index:3;text-transform:uppercase}
   .add-photo-btn:hover{background:var(--orange)}
+
   .card-body{padding:1rem}
   .card-name{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:1px;margin-bottom:4px}
   .card-meta{font-size:12px;color:var(--muted);margin-bottom:12px;font-family:'DM Mono',monospace}
@@ -119,7 +122,6 @@
   .modal p{font-size:14px;color:var(--muted);margin-bottom:1.5rem;line-height:1.7}
   .modal-close{background:transparent;border:1px solid var(--border);color:var(--muted);padding:8px 20px;border-radius:4px;cursor:pointer;font-family:'Barlow',sans-serif;font-size:13px}
   .modal-close:hover{border-color:#555;color:var(--text)}
-  #drop-zone.dz-over{border-color:var(--orange);background:rgba(255,92,0,0.05)}
 
   /* ADMIN */
   .admin-indicator{font-size:11px;font-family:'DM Mono',monospace;color:var(--orange);letter-spacing:1px;padding:4px 10px;border:1px solid var(--orange);border-radius:4px;cursor:pointer;opacity:.7}
@@ -321,7 +323,6 @@
     'Authorization': 'Bearer ' + SUPA_KEY
   };
 
-  // --- DATA ---
   let items = [];
   let isAdmin = false;
 
@@ -334,9 +335,7 @@
         try {
           if (row.photos) {
             const parsed = JSON.parse(row.photos);
-            // flatten in case of double-encoded arrays
             photos = Array.isArray(parsed) ? parsed.flat() : [];
-            // deduplicate
             photos = [...new Set(photos)];
           }
         } catch(e) { photos = []; }
@@ -350,14 +349,12 @@
     const payload = { ...item, photos: JSON.stringify(item.photos || []) };
     delete payload.id;
     if (item.id && !String(item.id).startsWith('new')) {
-      // update
       await fetch(SUPA_URL + '/rest/v1/items?id=eq.' + item.id, {
         method: 'PATCH',
         headers: { ...headers, 'Prefer': 'return=representation' },
         body: JSON.stringify(payload)
       });
     } else {
-      // insert
       const res = await fetch(SUPA_URL + '/rest/v1/items', {
         method: 'POST',
         headers: { ...headers, 'Prefer': 'return=representation' },
@@ -403,7 +400,6 @@
     isAdmin = false;
     document.querySelectorAll('.admin-only').forEach(el => el.style.display = 'none');
     document.getElementById('admin-badge').style.display = 'none';
-    // Switch back to storefront
     document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
     document.getElementById('view-store').classList.add('active');
     document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
@@ -468,32 +464,52 @@
     input.click();
   }
 
+  // --- CAROUSEL ---
   function buildCarousel(it) {
     const photos = it.photos && it.photos.length ? it.photos : null;
     const addBtn = isAdmin ? `<button class="add-photo-btn" onclick="addPhotosToItem(${it.id})">📷 Add</button>` : '';
     if (!photos) {
       return `<div class="card-img" style="font-size:3rem">${it.icon}${addBtn}</div>`;
     }
-    const slides = photos.map((p,i) => `<div class="carousel-slide"><img src="${p}" alt="photo ${i+1}"></div>`).join('');
-    const dots = photos.length > 1 ? `<div class="carousel-dots">${photos.map((_,i) => `<button class="carousel-dot${i===0?' active':''}" onclick="goSlide(${it.id},${i})"></button>`).join('')}</div>` : '';
-    const arrows = photos.length > 1 ? `<button class="carousel-btn prev" onclick="prevSlide(${it.id})">&#8249;</button><button class="carousel-btn next" onclick="nextSlide(${it.id})">&#8250;</button>` : '';
-    return `<div class="card-img"><div class="carousel" id="car-${it.id}"><div class="carousel-slides" id="slides-${it.id}">${slides}</div>${arrows}${dots}</div>${addBtn}</div>`;
+    const slides = photos.map((p,i) =>
+      `<div class="carousel-slide"><img src="${p}" alt="photo ${i+1}" loading="lazy"></div>`
+    ).join('');
+    const dots = photos.length > 1
+      ? `<div class="carousel-dots">${photos.map((_,i) =>
+          `<button class="carousel-dot${i===0?' active':''}" onclick="goSlide(${it.id},${i})"></button>`
+        ).join('')}</div>`
+      : '';
+    const arrows = photos.length > 1
+      ? `<button class="carousel-btn prev" onclick="prevSlide(${it.id})">&#8249;</button><button class="carousel-btn next" onclick="nextSlide(${it.id})">&#8250;</button>`
+      : '';
+    return `<div class="card-img">
+      <div class="carousel" id="car-${it.id}">
+        <div class="carousel-slides" id="slides-${it.id}">${slides}</div>
+        ${arrows}${dots}
+      </div>
+      ${addBtn}
+    </div>`;
   }
 
   const slideIndex = {};
+
   function goSlide(id, idx) {
     slideIndex[id] = idx;
-    const slides = document.getElementById('slides-' + id);
-    if (slides) slides.style.transform = `translateX(-${idx * 100}%)`;
+    const slidesEl = document.getElementById('slides-' + id);
+    if (slidesEl) {
+      slidesEl.style.transform = `translateX(-${idx * 100}%)`;
+    }
     const dots = document.querySelectorAll(`#car-${id} .carousel-dot`);
     dots.forEach((d,i) => d.classList.toggle('active', i === idx));
   }
+
   function nextSlide(id) {
     const item = items.find(i => i.id === id);
     if (!item || !item.photos) return;
     const idx = ((slideIndex[id] || 0) + 1) % item.photos.length;
     goSlide(id, idx);
   }
+
   function prevSlide(id) {
     const item = items.find(i => i.id === id);
     if (!item || !item.photos) return;
