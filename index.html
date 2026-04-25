@@ -329,10 +329,19 @@
     try {
       const res = await fetch(SUPA_URL + '/rest/v1/items?select=*', { headers });
       const data = await res.json();
-      items = data.map(row => ({
-        ...row,
-        photos: row.photos ? JSON.parse(row.photos) : []
-      }));
+      items = data.map(row => {
+        let photos = [];
+        try {
+          if (row.photos) {
+            const parsed = JSON.parse(row.photos);
+            // flatten in case of double-encoded arrays
+            photos = Array.isArray(parsed) ? parsed.flat() : [];
+            // deduplicate
+            photos = [...new Set(photos)];
+          }
+        } catch(e) { photos = []; }
+        return { ...row, photos };
+      });
       render();
     } catch(e) { console.error('Load error', e); }
   }
