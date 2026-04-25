@@ -311,7 +311,7 @@
 
   async function loadItems() {
     try {
-      const res = await fetch(SUPA_URL + '/rest/v1/items?select=*&order=id.asc', { headers });
+      const res = await fetch(SUPA_URL + '/rest/v1/items?select=*', { headers });
       const data = await res.json();
       items = data.map(row => ({
         ...row,
